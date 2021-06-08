@@ -310,6 +310,12 @@ class Vector2:
         n = other.normalized()
         return self.dot(n)*n
 
+    def normal(self, other):
+        """Return the component normal to the vector other"""
+        n = other.normalized()
+        return self - self.project(n)
+
+
 class Vector3:
     __slots__ = ['x', 'y', 'z']
     __hash__ = None
@@ -582,16 +588,27 @@ class Vector3:
 
     def angle(self, other):
         """Return the angle to the vector other"""
-        return math.acos(self.dot(other) / (self.magnitude()*other.magnitude()))
+        ca = self.dot(other) / (self.magnitude()*other.magnitude())
+        if ca < -1.0:
+            ca = -1.0
+        elif ca > 1.0:
+            ca = 1.0
+        return math.acos(ca)
 
     def project(self, other):
         """Return one vector projected on the vector other"""
         n = other.normalized()
         return self.dot(n)*n
 
-# a b c 
-# e f g 
-# i j k 
+    def normal(self, other):
+        """Return the component normal to the vector other"""
+        n = other.normalized()
+        return self - self.project(n)
+
+
+# a b c
+# e f g
+# i j k
 
 class Matrix3:
     __slots__ = list('abcefgijk')
@@ -1298,6 +1315,17 @@ class Quaternion:
 
     copy = __copy__
 
+    def __getitem__(self, key):
+        return (self.w, self.x, self.y, self.z)[key]
+
+    def __setitem__(self, key, value):
+        l = [self.w, self.x, self.y, self.z]
+        l[key] = value
+        self.w, self.x, self.y, self.z = l
+
+    def __iter__(self):
+        return iter((self.w, self.x, self.y, self.z))
+
     def __repr__(self):
         return 'Quaternion(real=%.2f, imag=<%.2f, %.2f, %.2f>)' % \
             (self.w, self.x, self.y, self.z)
@@ -1564,32 +1592,38 @@ class Quaternion:
     new_rotate_matrix = classmethod(new_rotate_matrix)
     
     def new_interpolate(cls, q1, q2, t):
+        '''
+        ASSUMES QUATERNIONS TO BE INTERPOLATED ARE NORMALIZED.
+        '''
         assert isinstance(q1, Quaternion) and isinstance(q2, Quaternion)
         Q = cls()
 
-        costheta = q1.w * q2.w + q1.x * q2.x + q1.y * q2.y + q1.z * q2.z
+        if t == 0.0:
+            Q = q1.copy()
+            return Q
+        elif t == 1.0:
+            Q = q2.copy()
+            return Q
+
+        costheta = ((q1.w * q2.w + q1.x * q2.x + q1.y * q2.y + q1.z * q2.z))
+
         if costheta < 0.:
             costheta = -costheta
             q1 = q1.conjugated()
-        elif costheta > 1:
-            costheta = 1
+
+        if costheta > 1:
+            costheta = 1.0
+
+        if costheta == 1.0:
+            # identical quaternions
+            Q.w = q1.w
+            Q.x = q1.x
+            Q.y = q1.y
+            Q.z = q1.z
+            return Q
 
         theta = math.acos(costheta)
-        if abs(theta) < 0.01:
-            Q.w = q2.w
-            Q.x = q2.x
-            Q.y = q2.y
-            Q.z = q2.z
-            return Q
-
         sintheta = math.sqrt(1.0 - costheta * costheta)
-        if abs(sintheta) < 0.01:
-            Q.w = (q1.w + q2.w) * 0.5
-            Q.x = (q1.x + q2.x) * 0.5
-            Q.y = (q1.y + q2.y) * 0.5
-            Q.z = (q1.z + q2.z) * 0.5
-            return Q
-
         ratio1 = math.sin((1 - t) * theta) / sintheta
         ratio2 = math.sin(t * theta) / sintheta
 

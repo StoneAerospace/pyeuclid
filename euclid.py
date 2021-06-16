@@ -1330,6 +1330,22 @@ class Quaternion:
         return 'Quaternion(real=%.2f, imag=<%.2f, %.2f, %.2f>)' % \
             (self.w, self.x, self.y, self.z)
 
+    def __eq__(self, other):
+        if isinstance(other, Quaternion):
+            return self.w == other.w and \
+                   self.x == other.x and \
+                   self.y == other.y and \
+                   self.z == other.z
+        else:
+            assert hasattr(other, '__len__') and len(other) == 4
+            return self.w == other[0] and \
+                   self.x == other[1] and \
+                   self.y == other[2] and \
+                   self.z == other[3]
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __mul__(self, other):
         if isinstance(other, Quaternion):
             Ax = self.x

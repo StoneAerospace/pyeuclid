@@ -1327,7 +1327,7 @@ class Quaternion:
         return iter((self.w, self.x, self.y, self.z))
 
     def __repr__(self):
-        return 'Quaternion(real=%.2f, imag=<%.2f, %.2f, %.2f>)' % \
+        return 'Quaternion(real=%.4f, imag=<%.4f, %.4f, %.4f>)' % \
             (self.w, self.x, self.y, self.z)
 
     def __eq__(self, other):
